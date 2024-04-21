@@ -9,7 +9,7 @@ type QuestionFormProps = {
 }
 
 export default function PostForm({ addNewPost }: QuestionFormProps) {
-  const [newPost, setNewPost] = useState<QuestionFormDataType>({title:'', body: ''})
+const [newPost, setNewPost] = useState<QuestionFormDataType>({question:'', answer: ''})
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setNewPost({...newPost, [event.target.name]:event.target.value })
@@ -25,10 +25,10 @@ export default function PostForm({ addNewPost }: QuestionFormProps) {
         <Card.Body>
           <h3 className='text-center'>Create New Post</h3>
           <Form onSubmit={handleFormSubmit}>
-                <Form.Label>Post Title</Form.Label>
-                <Form.Control name='title' placeholder='Enter New Question Title' value={newPost.title} onChange={handleInputChange} />
-                <Form.Label>Post Body</Form.Label>
-                <Form.Control name='body' placeholder='Enter New Question Body' value={newPost.body} onChange={handleInputChange} />
+                <Form.Label>Question</Form.Label>
+                <Form.Control name='question' placeholder='Enter Question' value={newPost.question} onChange={handleInputChange} />
+                <Form.Label>Answer</Form.Label>
+                <Form.Control name='answer' placeholder='Enter Question Answer' value={newPost.answer} onChange={handleInputChange} />
                 <Button className='mt-3 w-100' variant='success' type='submit'>Create Post</Button>
             </Form>
         </Card.Body>

@@ -1,4 +1,3 @@
-// import React from 'react';
 import React, { useState, useEffect } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
@@ -6,8 +5,8 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import QuestionCard from '../components/questionCard';
 import QuestionForm from '../components/questionForm';
-import { QuestionType, QuestionFormDataType} from "../types";
-import { getAllQuestions } from '../lib/apiWrapper';
+import {QuestionType, QuestionFormDataType, UserType, CategoryType} from "../types";
+import { getAllQuestions, createQuestion } from '../lib/apiWrapper';
 
 
 type Sorting = {
@@ -20,24 +19,28 @@ type Sorting = {
 
 type HomeProps = {
     isLoggedIn: Boolean,
-    handleClick: () => void
+    currentUser:UserType | null,
+    flashMessage: (message:string, category:CategoryType) => void
 }
 
-export default function Home({isLoggedIn, handleClick}: HomeProps) {
+export default function Home({isLoggedIn, flashMessage, currentUser}: HomeProps) {
 
 const [showForm, setShowForm] = useState(false);
 const [questions, setQuestions] = useState<QuestionType[]>([]);
+const [fetchQuestionData, setFetchQuestionData] = useState(true);
 
     useEffect(() => {
         async function fetchData(){
             const result = await getAllQuestions();
             console.log(result)
             if (result.data){
+                let questions = result.data.questions
+                questions.sort((a,b) => (new Date(a.created_on) > new Date(b.created_on) ? -1 : 1))
                 setQuestions(result.data.questions)
             }
         }
         fetchData();
-    }, [])
+    }, [fetchQuestionData])
 
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -58,40 +61,44 @@ const [questions, setQuestions] = useState<QuestionType[]>([]);
         setSearchTerm(e.target.value);
     }
 
-    const addNewPost = (newQuestionData: QuestionFormDataType) => {
-        const newPost: QuestionType = {...newQuestionData, id:questions.length+1}
-        setQuestions([...questions, newPost])
-        setShowForm(false);
+    const addNewQuestion = async (newQuestionData: QuestionFormDataType) => {
+        const token = localStorage.getItem('token') || '';
+        const response = await createQuestion(token, newQuestionData);
+        if (response.error){
+            flashMessage(response.error, 'danger')
+        }
+        else if (response.data){
+            flashMessage('New Question Added', 'success');
+            setShowForm(false);
+            setFetchQuestionData(!fetchQuestionData);
+
+        }
     }
 
-    // how to display the navbar without the Navigation.tsx
-
-    // return React.createElement(React.Fragment, {}, React.createElement(Navigation, { isLoggedIn }, undefined), React.createElement(Container, {}, React.createElement('h1', {}, 'Hello World')))
-    console.log(questions)
     return (
         <>
-            <h1>Hello World</h1>
-                <Button variant='primary' onClick={handleClick}>Click Me!</Button>
-                <h2>{isLoggedIn ? `Welcome Back` : 'Please Log In or Sign Up'}</h2>
-                <Row>
-                    <Col xs={12} md={6}>
-                        <Form.Control value={searchTerm} placeholder='Search Questions' onChange={handleInputChange} />
-                    </Col>
+            <h1 className="text-center">{isLoggedIn && currentUser ? `Hello ${currentUser?.first_name} ${currentUser?.last_name}` : 'Welcome to the Blog' }</h1>
+            <Row>
+                <Col xs={12} md={6}>
+                    <Form.Control value={searchTerm} placeholder='Search Posts' onChange={handleInputChange} />
+                </Col>
+                <Col>
+                    <Form.Select onChange={handleSelectChange}>
+                        <option>Choose Sorting Option</option>
+                        <option value="idAsc">Sort By ID ASC</option>
+                        <option value="idDesc">Sort By ID DESC</option>
+                        <option value="titleAsc">Sort By Title ASC</option>
+                        <option value="titleDesc">Sort By Title DESC</option>
+                    </Form.Select>
+                </Col>
+                {isLoggedIn &&(
                     <Col>
-                        <Form.Select onChange={handleSelectChange}>
-                            <option>Choose Sorting Option</option>
-                            <option value="idAsc">Sort By id ASC</option>
-                            <option value="idDesc">Sort By id DESC</option>
-                            <option value="titleAsc">Sort By Title ASC</option>
-                            <option value="titleDesc">Sort By Title DESC</option>
-                        </Form.Select>
+                        <Button className='w-100' variant='success' onClick={() => setShowForm(!showForm)}>{showForm ? 'Hide Form' : 'Add Quiz+'}</Button>
                     </Col>
-                    <Col>
-                        <Button className='w-100' variant='success' onClick={() => setShowForm(!showForm)}>{showForm ? 'Hide Form' : 'Add Post+'}</Button>
-                    </Col>
+                )}
                 </Row>
-                { showForm && <QuestionForm addNewPost={addNewPost} /> }
-                {questions.map((p) => (<QuestionCard key={p.id} question={p} />))}
+                { showForm && <QuestionForm addNewPost={addNewQuestion} /> }
+                {questions.map((p) => (<QuestionCard key={p.id} question={p} currentUser={currentUser} />))}
         </>
     )
 }
